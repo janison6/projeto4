@@ -14,6 +14,7 @@ steps:
     dockerVersion: '$(dockerVersion)'
 
 - script: |
+    docker login -u $(dockerHubUsername) -p $(dockerHubPassword)  # Adicione esta linha!
     docker build -f /home/vsts/work/1/s/Dockerfile \
       --label com.azure.dev.image.system.teamfoundationcollectionuri=https://dev.azure.com/janison6/ \
       --label com.azure.dev.image.system.teamproject=Unyleya_Projeto_DevOps \
@@ -27,5 +28,6 @@ steps:
       --label image.base.ref.name=ubuntu:latest \
       --label image.base.digest=sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab \
       -t "$(dockerHubUsername)/$(imageName):$(Build.BuildId)" /home/vsts/work/1/s
+    docker push "$(dockerHubUsername)/$(imageName):$(Build.BuildId)" # Adicione esta linha para o push
     echo "Imagem a ser construída: $(dockerHubUsername)/$(imageName):$(Build.BuildId)" # Linha de debug
   displayName: 'Build and push image to Docker Hub'
