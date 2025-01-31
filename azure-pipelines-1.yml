@@ -1,0 +1,69 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerVersion: '20.10.24' # Ou a versão que você preferir
+  # Variáveis para o deploy (substitua pelos seus valores)
+  ARM_SUBSCRIPTION_NAME: 'NomeDaSuaConexaoDeServicoAzure' # Nome da sua conexão de serviço Azure
+  ARM_RESOURCE_GROUP_NAME: 'NomeDoSeuGrupoDeRecursos' # Nome do grupo de recursos do App Service
+  APP_SERVICE_NAME: 'NomeDoSeuAppService' # Nome do seu App Service
+  DOCKER_HUB_USERNAME: $(dockerHubUsername) # Seu nome de usuário do Docker Hub
+  IMAGE_NAME: $(imageName) # O nome da sua imagem
+
+stages:
+- stage: Build
+  displayName: 'Build and push image to Docker Hub'
+  jobs:
+  - job: Build
+    steps:
+    - task: DockerInstaller@0
+      displayName: 'Install Docker'
+      inputs:
+        dockerVersion: '$(dockerVersion)'
+
+    - script: |
+        docker login -u $(DOCKER_HUB_USERNAME) -p $(dockerHubPassword)
+
+        docker build -f /home/vsts/work/1/s/Dockerfile \
+          --label com.azure.dev.image.system.teamfoundationcollectionuri=https://dev.azure.com/janison6/ \
+          --label com.azure.dev.image.system.teamproject=Unyleya_Projeto_DevOps \
+          --label com.azure.dev.image.build.repository.name=janison6/projeto4 \
+          --label com.azure.dev.image.build.sourceversion=e43fd29988724edb63e614d6da4996ec667583f1 \
+          --label com.azure.dev.image.build.repository.uri=https://github.com/janison6/projeto4 \
+          --label com.azure.dev.image.build.sourcebranchname=main \
+          --label com.azure.dev.image.build.definitionname=janison6.projeto4 \
+          --label com.azure.dev.image.build.buildnumber=20250131.3 \
+          --label com.azure.dev.image.build.builduri=vstfs:///Build/Build/155 \
+          --label image.base.ref.name=ubuntu:latest \
+          --label image.base.digest=sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab \
+          -t "$(DOCKER_HUB_USERNAME)/$(IMAGE_NAME):$(Build.BuildId)" /home/vsts/work/1/s
+
+        docker push "$(DOCKER_HUB_USERNAME)/$(IMAGE_NAME):$(Build.BuildId)"
+
+        echo "Imagem construída e enviada: $(DOCKER_HUB_USERNAME)/$(IMAGE_NAME):$(Build.BuildId)"
+
+      displayName: 'Build and push image to Docker Hub'
+
+- stage: Deploy
+  displayName: 'Deploy to App Service'
+  dependsOn: Build # Depende do estágio de Build
+  variables:
+    DOCKER_IMAGE_NAME: '$(DOCKER_HUB_USERNAME)/$(IMAGE_NAME):$(Build.BuildId)'
+  jobs:
+  - deployment: DeployJob
+    displayName: 'Deploy'
+    environment: Production # Ou o ambiente desejado
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Deploy to App Service'
+            inputs:
+              azureSubscription: $(ARM_SUBSCRIPTION_NAME)
+              appType: webApp
+              appName: $(APP_SERVICE_NAME)
+              imageName: $(DOCKER_IMAGE_NAME)
