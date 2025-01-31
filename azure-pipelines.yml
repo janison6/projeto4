@@ -35,5 +35,3 @@ steps:
     echo "Imagem construída e enviada: $(dockerHubUsername)/$(imageName):$(Build.BuildId)"
 
   displayName: 'Build and push image to Docker Hub'
-    echo "Imagem a ser construída: $(dockerHubUsername)/$(imageName):$(Build.BuildId)" # Linha de debug
-  displayName: 'Build and push image to Docker Hub'
