@@ -4,11 +4,14 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  dockerVersion: '20.10.24' # Ou a versão estável que você preferir
+
 steps:
 - task: DockerInstaller@0
   displayName: 'Install Docker'
   inputs:
-    dockerVersion: 'latest'
+    dockerVersion: '$(dockerVersion)'
 
 - task: Docker@2
   displayName: 'Build and push image to Docker Hub'
